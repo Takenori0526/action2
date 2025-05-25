@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>マーブル君アクションゲーム プロトタイプ</title>
+<style>
+  body { margin: 0; overflow: hidden; background-color: #cceeff; }
+  canvas { display: block; margin: 0 auto; background: #88ccff; }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas" width="800" height="400"></canvas>
+<audio id="bgm" src="https://example.com/bgm.mp3" loop></audio>
+<audio id="jumpSound" src="https://example.com/jump.mp3"></audio>
+<audio id="attackSound" src="https://example.com/attack.mp3"></audio>
+<audio id="hitSound" src="https://example.com/hit.mp3"></audio>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const bgm = document.getElementById('bgm');
+const jumpSound = document.getElementById('jumpSound');
+const attackSound = document.getElementById('attackSound');
+const hitSound = document.getElementById('hitSound');
+
+let playerImg = new Image();
+playerImg.src = 'mctv_marble_right.png'; // アップロード済の右向き画像名
+
+let iconImg = new Image();
+iconImg.src = 'icon_109921_64.png'; // テレビアイコン仮
+
+let player = { x: 100, y: 300, width: 64, height: 64, vy: 0, onGround: true };
+let enemies = [{ x: 800, y: 300, width: 40, height: 40 }];
+let projectiles = [];
+
+let gravity = 1;
+let score = 0;
+
+// スマホタップ対応
+canvas.addEventListener('touchstart', handleInput);
+canvas.addEventListener('click', handleInput);
+
+function handleInput() {
+  if (player.onGround) {
+    player.vy = -15;
+    player.onGround = false;
+    jumpSound.play();
+  } else {
+    shootProjectile();
+  }
+}
+
+function shootProjectile() {
+  projectiles.push({ x: player.x + player.width, y: player.y + player.height / 2, speed: 10 });
+  attackSound.play();
+}
+
+function update() {
+  player.y += player.vy;
+  player.vy += gravity;
+  if (player.y >= 300) {
+    player.y = 300;
+    player.vy = 0;
+    player.onGround = true;
+  }
+
+  // 敵移動
+  enemies.forEach(e => e.x -= 5);
+
+  // 弾移動
+  projectiles.forEach(p => p.x += p.speed);
+
+  // 当たり判定
+  projectiles.forEach(p => {
+    enemies.forEach((e, ei) => {
+      if (p.x < e.x + e.width && p.x + 10 > e.x && p.y < e.y + e.height && p.y + 10 > e.y) {
+        enemies.splice(ei, 1);
+        score += 10;
+        hitSound.play();
+        // 新しい敵を追加
+        enemies.push({ x: 800 + Math.random() * 400, y: 300, width: 40, height: 40 });
+      }
+    });
+  });
+
+  // 弾削除
+  projectiles = projectiles.filter(p => p.x < canvas.width);
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+
+  enemies.forEach(e => {
+    ctx.fillStyle = 'black';
+    ctx.fillRect(e.x, e.y, e.width, e.height);
+  });
+
+  projectiles.forEach(p => {
+    ctx.drawImage(iconImg, p.x, p.y, 20, 20);
+  });
+
+  ctx.fillStyle = 'white';
+  ctx.font = '20px Arial';
+  ctx.fillText(`Score: ${score}`, 10, 30);
+}
+
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+// 音楽再生
+bgm.play();
+gameLoop();
+</script>
+</body>
+</html>

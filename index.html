@@ -5,88 +5,103 @@
     <title>マーブル君アクションゲーム</title>
     <style>
         body { margin: 0; overflow: hidden; }
-        canvas { display: block; background: url('background.png') repeat-x; }
+        canvas { display: block; background: #87CEFA; }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas"></canvas>
+<canvas id="gameCanvas"></canvas>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+// 画像・音声の読み込み
+const playerImg = new Image();
+playerImg.src = 'chara-img01.png';
+const bgImage = new Image();
+bgImage.src = 'background.png'; // 背景画像（用意してね）
+const jumpSound = new Audio('se_jump.mp3');
+const bgm = new Audio('pastel_house.mp3');
+bgm.loop = true;
 
-        window.addEventListener('resize', () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        });
+// プレイヤー設定
+const player = { x: 50, y: canvas.height - 150, width: 100, height: 100, vy: 0, jumping: false };
 
-        const playerImg = new Image();
-        playerImg.src = 'chara-img01.png';
+// 敵設定
+let enemies = [];
+function spawnEnemy() {
+    enemies.push({ x: canvas.width, y: canvas.height - 150, width: 80, height: 80, speed: 5 });
+}
+setInterval(spawnEnemy, 2000);
 
-        const jumpSound = new Audio('se_jump.mp3');
-        const bgm = new Audio('パステルハウス.mp3'); // 日本語ファイル名は避ける
-        bgm.loop = true;
+// 背景スクロール
+let bgX = 0;
 
-        let bgmStarted = false;
-        window.addEventListener('click', function startAudio() {
-            if (!bgmStarted) {
-                bgm.play();
-                bgmStarted = true;
-            }
-        });
+// 重力
+const gravity = 1.5;
 
-        const player = {
-            x: 100,
-            y: canvas.height - 150,
-            width: 100,
-            height: 100,
-            vy: 0,
-            gravity: 1,
-            jumpPower: -15,
-            onGround: true
-        };
+// ユーザー操作でBGM開始
+window.addEventListener('click', function startAudio() {
+    bgm.play();
+    window.removeEventListener('click', startAudio);
+});
 
-        function drawPlayer() {
-            ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
-        }
+// ジャンプ処理
+window.addEventListener('keydown', e => {
+    if (e.code === 'Space' && !player.jumping) {
+        player.vy = -20;
+        player.jumping = true;
+        jumpSound.play();
+    }
+});
 
-        function updatePlayer() {
-            player.y += player.vy;
-            player.vy += player.gravity;
+function update() {
+    // 背景スクロール
+    bgX -= 2;
+    if (bgX <= -canvas.width) bgX = 0;
 
-            if (player.y + player.height >= canvas.height) {
-                player.y = canvas.height - player.height;
-                player.vy = 0;
-                player.onGround = true;
-            }
-        }
+    // プレイヤー重力
+    player.y += player.vy;
+    player.vy += gravity;
+    if (player.y >= canvas.height - 150) {
+        player.y = canvas.height - 150;
+        player.jumping = false;
+    }
 
-        function gameLoop() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            updatePlayer();
-            drawPlayer();
-            requestAnimationFrame(gameLoop);
-        }
+    // 敵の移動
+    enemies.forEach(enemy => {
+        enemy.x -= enemy.speed;
+    });
+    // 画面外の敵を削除
+    enemies = enemies.filter(enemy => enemy.x + enemy.width > 0);
+}
 
-        window.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' && player.onGround) {
-                player.vy = player.jumpPower;
-                player.onGround = false;
-                jumpSound.play();
-            }
-        });
+function draw() {
+    // 背景描画（2枚でループ）
+    ctx.drawImage(bgImage, bgX, 0, canvas.width, canvas.height);
+    ctx.drawImage(bgImage, bgX + canvas.width, 0, canvas.width, canvas.height);
 
-        window.addEventListener('touchstart', (e) => {
-            if (player.onGround) {
-                player.vy = player.jumpPower;
-                player.onGround = false;
-                jumpSound.play();
-            }
-        });
+    // プレイヤー描画
+    ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
 
-        gameLoop();
-    </script>
+    // 敵描画
+    ctx.fillStyle = 'red';
+    enemies.forEach(enemy => {
+        ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+    });
+}
+
+function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+bgImage.onload = () => {
+    gameLoop();
+};
+</script>
 </body>
 </html>

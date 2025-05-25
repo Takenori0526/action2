@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>マーブル君アクションゲーム</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; background: url('background.png') repeat-x; }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        const playerImg = new Image();
+        playerImg.src = 'chara-img01.png';
+
+        const jumpSound = new Audio('se_jump.mp3');
+        const bgm = new Audio('パステルハウス.mp3'); // 日本語ファイル名は避ける
+        bgm.loop = true;
+
+        let bgmStarted = false;
+        window.addEventListener('click', function startAudio() {
+            if (!bgmStarted) {
+                bgm.play();
+                bgmStarted = true;
+            }
+        });
+
+        const player = {
+            x: 100,
+            y: canvas.height - 150,
+            width: 100,
+            height: 100,
+            vy: 0,
+            gravity: 1,
+            jumpPower: -15,
+            onGround: true
+        };
+
+        function drawPlayer() {
+            ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+        }
+
+        function updatePlayer() {
+            player.y += player.vy;
+            player.vy += player.gravity;
+
+            if (player.y + player.height >= canvas.height) {
+                player.y = canvas.height - player.height;
+                player.vy = 0;
+                player.onGround = true;
+            }
+        }
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            updatePlayer();
+            drawPlayer();
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && player.onGround) {
+                player.vy = player.jumpPower;
+                player.onGround = false;
+                jumpSound.play();
+            }
+        });
+
+        window.addEventListener('touchstart', (e) => {
+            if (player.onGround) {
+                player.vy = player.jumpPower;
+                player.onGround = false;
+                jumpSound.play();
+            }
+        });
+
+        gameLoop();
+    </script>
+</body>
+</html>
